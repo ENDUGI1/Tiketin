@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(ViewData["Title"] is string t ? $"{t} · Tiketin" : "Tiketin")</title>
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+</head>
+<body>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="shell">
+        <partial name="_Sidebar" />
+        <main class="main">
+            @RenderBody()
+        </main>
+    </div>
+}
+else
+{
+    <main class="auth">
+        @RenderBody()
+    </main>
+}
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

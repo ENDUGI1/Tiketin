@@ -1,0 +1,37 @@
+@page "/auth/login"
+@model Tiketin.Web.Pages.Auth.LoginModel
+@{
+    ViewData["Title"] = "Masuk";
+}
+<div class="auth__card">
+    <div class="auth__brand">
+        <span class="sidebar__brand-mark">T</span>
+        <span>Tiketin</span>
+    </div>
+    <h1 style="font-size: var(--text-lg); margin-bottom: calc(var(--space) * 1);">Masuk</h1>
+    <p class="text-2 text-sm" style="margin-bottom: calc(var(--space) * 5);">
+        Sistem pelaporan masalah IT internal.
+    </p>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="form-alert" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <form method="post">
+        <div class="field">
+            <label class="field__label" asp-for="Input.Email">Email</label>
+            <input class="field__input" asp-for="Input.Email" type="email" autocomplete="username"
+                   autofocus inputmode="email" />
+            <span class="field__error" asp-validation-for="Input.Email"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Input.Password">Kata sandi</label>
+            <input class="field__input" asp-for="Input.Password" type="password" autocomplete="current-password" />
+            <span class="field__error" asp-validation-for="Input.Password"></span>
+        </div>
+        <button type="submit" class="btn btn--primary" style="width:100%; margin-top: calc(var(--space) * 2);">
+            Masuk
+        </button>
+    </form>
+</div>

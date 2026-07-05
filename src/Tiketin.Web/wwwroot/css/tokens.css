@@ -1,0 +1,73 @@
+/* Design tokens. Single dark theme, warm graphite. Do not add colors outside this file. */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-v20-latin-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/inter-v20-latin-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/inter-v20-latin-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-v24-latin-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-v24-latin-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-v24-latin-600.woff2") format("woff2");
+}
+
+:root {
+  /* Surface — warm graphite, bukan pure black, bukan navy default */
+  --bg-0: #101312;        /* app background */
+  --bg-1: #161A19;        /* card / panel */
+  --bg-2: #1E2422;        /* hover, table row alt */
+  --border: #2A312E;
+  --border-strong: #3A423F;
+  /* Text */
+  --text-1: #E8ECEA;
+  --text-2: #9AA5A0;
+  --text-3: #5F6B66;
+  /* Accent tunggal — signal orange, dipakai HEMAT: primary action & SLA warning saja */
+  --accent: #E8842C;
+  --accent-hover: #F29A4A;
+  /* Status — dipakai sebagai dot/chip kecil, bukan blok warna besar */
+  --status-open: #5B9BD5;
+  --status-progress: #E8B93C;
+  --status-resolved: #4CAF8E;
+  --status-closed: #5F6B66;
+  --status-critical: #E05252;
+  /* Type */
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;   /* ticket number, timestamps, SLA timer */
+  --text-xs: 0.75rem; --text-sm: 0.8125rem; --text-base: 0.875rem;
+  --text-lg: 1rem; --text-xl: 1.375rem;
+  --radius: 6px;
+  --space: 4px;  /* base unit, semua spacing kelipatan 4 */
+}

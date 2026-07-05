@@ -1,0 +1,55 @@
+@{
+    var currentPath = Context.Request.Path.Value ?? "/";
+
+    string? Current(string prefix) =>
+        prefix == "/" ? (currentPath == "/" ? "page" : null)
+        : currentPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? "page" : null;
+
+    var isAdmin = User.IsInRole("Admin");
+    var isTechnician = User.IsInRole("Technician");
+    var roleLabel = isAdmin ? "Admin" : isTechnician ? "Teknisi" : "Karyawan";
+}
+<aside class="sidebar">
+    <a class="sidebar__brand" href="/">
+        <span class="sidebar__brand-mark">T</span>
+        <span>Tiketin</span>
+    </a>
+    <nav class="sidebar__nav" aria-label="Navigasi utama">
+        @if (isAdmin)
+        {
+            <a class="sidebar__link" href="/admin" aria-current="@Current("/admin")">
+                @Icons.Render("layout-dashboard") Dashboard
+            </a>
+        }
+        @if (isAdmin || isTechnician)
+        {
+            <a class="sidebar__link" href="/queue" aria-current="@Current("/queue")">
+                @Icons.Render("inbox") Antrian
+            </a>
+        }
+        <a class="sidebar__link" href="/tickets" aria-current="@Current("/tickets")">
+            @Icons.Render("ticket") Tiket Saya
+        </a>
+        <a class="sidebar__link" href="/kb" aria-current="@Current("/kb")">
+            @Icons.Render("book-open") Knowledge Base
+        </a>
+        @if (isAdmin)
+        {
+            <span class="sidebar__section">Kelola</span>
+            <a class="sidebar__link" href="/admin/users" aria-current="@Current("/admin/users")">
+                @Icons.Render("users") Pengguna
+            </a>
+        }
+    </nav>
+    <div class="sidebar__footer">
+        <div class="sidebar__user">
+            <span class="sidebar__user-name">@(User.FindFirst(AppClaimsPrincipalFactory.FullNameClaim)?.Value ?? User.Identity!.Name)</span>
+            <span class="sidebar__user-role">@roleLabel</span>
+        </div>
+        <form method="post" asp-page="/Auth/Logout">
+            <button type="submit" class="btn btn--ghost" style="width:100%; justify-content:flex-start;">
+                @Icons.Render("log-out") Keluar
+            </button>
+        </form>
+    </div>
+</aside>

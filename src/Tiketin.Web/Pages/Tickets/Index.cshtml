@@ -1,0 +1,16 @@
+@page "/tickets"
+@model Tiketin.Web.Pages.Tickets.IndexModel
+@{
+    ViewData["Title"] = "Tiket Saya";
+}
+<div class="page-header">
+    <div>
+        <h1>Tiket Saya</h1>
+        <p class="page-header__sub">Laporan masalah IT yang Anda buat.</p>
+    </div>
+    <a class="btn btn--primary" href="/tickets/create">@Icons.Render("plus") Buat Tiket</a>
+</div>
+<div class="empty">
+    <p>Belum ada tiket. Laporkan masalah IT Anda untuk mulai.</p>
+    <a class="btn btn--primary" href="/tickets/create">@Icons.Render("plus") Buat Tiket</a>
+</div>

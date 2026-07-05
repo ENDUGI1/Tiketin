@@ -1,0 +1,19 @@
+@page "/auth/denied"
+@model Tiketin.Web.Pages.Auth.DeniedModel
+@{
+    ViewData["Title"] = "Akses ditolak";
+}
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="empty" style="max-width: 480px;">
+        <p>Anda tidak punya akses ke halaman ini.</p>
+        <a class="btn btn--secondary" href="/">Kembali ke beranda</a>
+    </div>
+}
+else
+{
+    <div class="auth__card">
+        <p class="text-2">Anda tidak punya akses ke halaman ini.</p>
+        <a class="btn btn--secondary" style="margin-top: calc(var(--space) * 4);" href="/auth/login">Masuk</a>
+    </div>
+}
