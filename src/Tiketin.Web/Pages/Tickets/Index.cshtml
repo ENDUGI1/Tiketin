@@ -2,6 +2,11 @@
 @model Tiketin.Web.Pages.Tickets.IndexModel
 @{
     ViewData["Title"] = "Tiket Saya";
+    var statusOptions = new[]
+    {
+        TicketStatus.Open, TicketStatus.InProgress, TicketStatus.Resolved,
+        TicketStatus.Closed, TicketStatus.Reopened
+    };
 }
 <div class="page-header">
     <div>
@@ -10,7 +15,90 @@
     </div>
     <a class="btn btn--primary" href="/tickets/create">@Icons.Render("plus") Buat Tiket</a>
 </div>
-<div class="empty">
-    <p>Belum ada tiket. Laporkan masalah IT Anda untuk mulai.</p>
-    <a class="btn btn--primary" href="/tickets/create">@Icons.Render("plus") Buat Tiket</a>
-</div>
+
+<form method="get" class="flex" style="margin-bottom: calc(var(--space) * 4); flex-wrap: wrap;">
+    <label class="text-2 text-sm" for="filter-status">Status</label>
+    <select class="field__select" style="width: auto;" id="filter-status" name="status"
+            onchange="this.form.submit()">
+        <option value="">Semua</option>
+        @foreach (var s in statusOptions)
+        {
+            <option value="@s" selected="@(Model.Status == s)">@UiText.StatusLabel(s)</option>
+        }
+    </select>
+    <input class="field__input" style="width: 240px;" type="search" name="search"
+           value="@Model.Search" placeholder="Cari nomor atau judul tiket"
+           aria-label="Cari tiket" />
+    <button type="submit" class="btn btn--secondary">Cari</button>
+</form>
+
+@if (Model.Tickets.Data.Count == 0)
+{
+    <div class="empty">
+        @if (Model.Status is not null || !string.IsNullOrEmpty(Model.Search))
+        {
+            <p>Tidak ada tiket yang cocok dengan filter.</p>
+            <a class="btn btn--secondary" href="/tickets">Hapus filter</a>
+        }
+        else
+        {
+            <p>Belum ada tiket. Laporkan masalah IT Anda untuk mulai.</p>
+            <a class="btn btn--primary" href="/tickets/create">@Icons.Render("plus") Buat Tiket</a>
+        }
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nomor</th>
+                    <th style="width: 40%;">Judul</th>
+                    <th>Kategori</th>
+                    <th>Prioritas</th>
+                    <th>Status</th>
+                    <th>Dibuat</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Tickets.Data)
+                {
+                    <tr>
+                        <td><a class="mono text-sm" href="/tickets/@t.Id">@t.TicketNumber</a></td>
+                        <td style="white-space: normal;"><a href="/tickets/@t.Id">@t.Title</a></td>
+                        <td class="text-2">@t.CategoryName</td>
+                        <td><span class="@UiText.PriorityCss(t.Priority)">@UiText.PriorityLabel(t.Priority)</span></td>
+                        <td>
+                            <span class="status @UiText.StatusCss(t.Status)">
+                                <span class="status__dot"></span>@UiText.StatusLabel(t.Status)
+                            </span>
+                        </td>
+                        <td class="mono text-3 text-xs">@UiText.Timestamp(t.CreatedAt)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Tickets.Meta.TotalPages > 1)
+    {
+        <div class="flex" style="margin-top: calc(var(--space) * 4); justify-content: flex-end;">
+            <span class="text-3 text-xs mono">Hal @Model.Tickets.Meta.Page / @Model.Tickets.Meta.TotalPages</span>
+            @if (Model.Tickets.Meta.Page > 1)
+            {
+                <a class="btn btn--secondary btn--sm"
+                   href="/tickets?p=@(Model.Tickets.Meta.Page - 1)&status=@Model.Status&search=@Model.Search">
+                    @Icons.Render("chevron-left", 14) Sebelumnya
+                </a>
+            }
+            @if (Model.Tickets.Meta.Page < Model.Tickets.Meta.TotalPages)
+            {
+                <a class="btn btn--secondary btn--sm"
+                   href="/tickets?p=@(Model.Tickets.Meta.Page + 1)&status=@Model.Status&search=@Model.Search">
+                    Berikutnya @Icons.Render("chevron-right", 14)
+                </a>
+            }
+        </div>
+    }
+}

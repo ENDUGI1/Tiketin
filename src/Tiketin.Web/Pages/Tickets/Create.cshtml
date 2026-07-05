@@ -1,0 +1,83 @@
+@page "/tickets/create"
+@model Tiketin.Web.Pages.Tickets.CreateModel
+@{
+    ViewData["Title"] = "Buat Tiket";
+}
+<div class="page-header">
+    <div>
+        <h1>Buat Tiket</h1>
+        <p class="page-header__sub">Jelaskan masalah IT Anda selengkap mungkin.</p>
+    </div>
+</div>
+
+<div style="max-width: 640px;">
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div class="form-alert" role="alert">
+            @ViewData.ModelState[string.Empty]!.Errors[0].ErrorMessage
+        </div>
+    }
+
+    <form method="post" enctype="multipart/form-data">
+        <div class="field">
+            <label class="field__label" asp-for="Input.Title">Judul <span class="req">*</span></label>
+            <input class="field__input" asp-for="Input.Title" maxlength="150" autofocus
+                   autocomplete="off" placeholder="Contoh: Printer lantai 2 tidak merespons" />
+            <span class="field__help">Ringkas dalam satu kalimat.</span>
+            <span class="field__error" asp-validation-for="Input.Title"></span>
+        </div>
+
+        <div id="kb-suggestions" class="card" hidden style="margin-bottom: calc(var(--space) * 4);">
+            <p class="text-sm" style="font-weight: 500; margin-bottom: calc(var(--space) * 2);">
+                Mungkin ini membantu sebelum membuat tiket
+            </p>
+            <ul id="kb-suggestions-list" class="text-sm" style="margin: 0; padding-left: 1.2em;"></ul>
+        </div>
+
+        <div class="field">
+            <label class="field__label" asp-for="Input.CategoryId">Kategori <span class="req">*</span></label>
+            <select class="field__select" asp-for="Input.CategoryId">
+                <option value="">Pilih kategori</option>
+                @foreach (var c in Model.Categories)
+                {
+                    <option value="@c.Id">@c.Name</option>
+                }
+            </select>
+            <span class="field__error" asp-validation-for="Input.CategoryId"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" asp-for="Input.Priority">Prioritas <span class="req">*</span></label>
+            <select class="field__select" asp-for="Input.Priority">
+                <option value="@TicketPriority.Low">Rendah, tidak mengganggu pekerjaan</option>
+                <option value="@TicketPriority.Medium" selected>Sedang, pekerjaan terhambat sebagian</option>
+                <option value="@TicketPriority.High">Tinggi, pekerjaan utama terganggu</option>
+                <option value="@TicketPriority.Critical">Kritis, operasional berhenti</option>
+            </select>
+            <span class="field__error" asp-validation-for="Input.Priority"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" asp-for="Input.Description">Deskripsi <span class="req">*</span></label>
+            <textarea class="field__textarea" asp-for="Input.Description" rows="6"
+                      placeholder="Apa yang terjadi, sejak kapan, dan apa yang sudah Anda coba?"></textarea>
+            <span class="field__error" asp-validation-for="Input.Description"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" for="Attachments">Lampiran</label>
+            <input class="field__input" type="file" id="Attachments" name="Attachments" multiple
+                   accept="image/*,application/pdf" />
+            <span class="field__help">Opsional. Gambar atau PDF, maksimal 5 MB per file.</span>
+        </div>
+
+        <div class="flex" style="margin-top: calc(var(--space) * 5);">
+            <button type="submit" class="btn btn--primary">Kirim Tiket</button>
+            <a class="btn btn--ghost" href="/tickets">Batal</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/kb-suggest.js" asp-append-version="true"></script>
+}

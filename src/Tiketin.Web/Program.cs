@@ -91,8 +91,13 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
 // --- Application services ---
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ITicketNumberGenerator, TicketNumberGenerator>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 
 // --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();

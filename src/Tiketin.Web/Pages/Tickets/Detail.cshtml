@@ -1,0 +1,210 @@
+@page "/tickets/{id:guid}"
+@model Tiketin.Web.Pages.Tickets.DetailModel
+@{
+    var t = Model.Ticket;
+    ViewData["Title"] = t.TicketNumber;
+
+    // Merge events and comments into one chronological activity stream.
+    var activity = Model.Events
+        .Where(e => e.EventType != TicketEventType.Commented) // comments render with their body
+        .Select(e => (Time: e.CreatedAt, Event: (TicketEventResponse?)e, Comment: (CommentResponse?)null))
+        .Concat(t.Comments.Select(c => (Time: c.CreatedAt, Event: (TicketEventResponse?)null, Comment: (CommentResponse?)c)))
+        .OrderBy(x => x.Time)
+        .ToList();
+}
+
+<div class="page-header" style="align-items: flex-start;">
+    <div>
+        <div class="flex" style="margin-bottom: calc(var(--space) * 1);">
+            <span class="mono text-sm text-2">@t.TicketNumber</span>
+            <span class="status @UiText.StatusCss(t.Status)">
+                <span class="status__dot"></span>@UiText.StatusLabel(t.Status)
+            </span>
+        </div>
+        <h1 style="max-width: 56ch;">@t.Title</h1>
+    </div>
+    <a class="btn btn--ghost" href="/tickets">@Icons.Render("chevron-left", 14) Kembali</a>
+</div>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-alert" role="alert">@Model.ErrorMessage</div>
+}
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: calc(var(--space) * 6); align-items: start;">
+    <div class="stack-4">
+
+        <div class="card">
+            <p class="text-xs text-3" style="margin-bottom: calc(var(--space) * 2);">Deskripsi</p>
+            <p style="white-space: pre-wrap;">@t.Description</p>
+
+            @if (t.Attachments.Count > 0)
+            {
+                <div style="margin-top: calc(var(--space) * 4); display: flex; flex-direction: column; gap: calc(var(--space) * 1);">
+                    @foreach (var a in t.Attachments)
+                    {
+                        <a class="flex text-sm" href="/api/v1/tickets/@t.Id/attachments/@a.Id">
+                            @Icons.Render("paperclip", 14)
+                            <span>@a.FileName</span>
+                            <span class="text-3 text-xs mono">@((a.SizeBytes / 1024.0).ToString("0")) KB</span>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+        <section aria-label="Aktivitas tiket">
+            <h2 class="text-sm text-2" style="margin-bottom: calc(var(--space) * 3);">Aktivitas</h2>
+            <div class="stack-4">
+                @foreach (var item in activity)
+                {
+                    @if (item.Comment is { } c)
+                    {
+                        <div class="card" style="@(c.IsInternal ? "border-style: dashed;" : "")">
+                            <div class="flex-between" style="margin-bottom: calc(var(--space) * 2);">
+                                <div class="flex">
+                                    <span class="text-sm" style="font-weight: 500;">@c.AuthorName</span>
+                                    @if (c.IsInternal)
+                                    {
+                                        <span class="text-xs" style="color: var(--accent);">@Icons.Render("lock", 12) Catatan internal</span>
+                                    }
+                                </div>
+                                <span class="mono text-xs text-3">@UiText.Timestamp(c.CreatedAt)</span>
+                            </div>
+                            <p class="text-sm" style="white-space: pre-wrap;">@c.Body</p>
+                            @foreach (var a in c.Attachments)
+                            {
+                                <a class="flex text-sm" style="margin-top: calc(var(--space) * 2);"
+                                   href="/api/v1/tickets/@t.Id/attachments/@a.Id">
+                                    @Icons.Render("paperclip", 14) @a.FileName
+                                </a>
+                            }
+                        </div>
+                    }
+                    else if (item.Event is { } e)
+                    {
+                        <div class="flex text-sm text-2" style="padding: 0 calc(var(--space) * 2);">
+                            <span class="mono text-xs text-3">@UiText.Timestamp(e.CreatedAt)</span>
+                            <span>
+                                @UiText.EventLabel(e.EventType)@(e.ActorName is not null ? $" oleh {e.ActorName}" : "")@(
+                                    e.EventType == TicketEventType.StatusChanged && e.OldValue is not null
+                                        ? $": {e.OldValue} menjadi {e.NewValue}"
+                                        : e.EventType is TicketEventType.Assigned or TicketEventType.PriorityChanged && e.NewValue is not null
+                                            ? $": {e.NewValue}"
+                                            : "")
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+
+        @if (t.Status != TicketStatus.Closed)
+        {
+            <form method="post" enctype="multipart/form-data" asp-page-handler="Comment" class="card">
+                <div class="field" style="margin-bottom: calc(var(--space) * 3);">
+                    <label class="field__label" asp-for="Comment.Body">Tambah komentar</label>
+                    <textarea class="field__textarea" asp-for="Comment.Body" rows="3"
+                              placeholder="Tulis pembaruan atau pertanyaan"></textarea>
+                    <span class="field__error" asp-validation-for="Comment.Body"></span>
+                </div>
+                <div class="flex-between">
+                    <div class="flex">
+                        <input class="field__input" type="file" asp-for="Comment.Attachment"
+                               accept="image/*,application/pdf" style="width: auto; padding: calc(var(--space) * 1);" />
+                        @if (Model.Actor.IsStaff)
+                        {
+                            <label class="flex text-sm text-2" style="cursor: pointer;">
+                                <input type="checkbox" asp-for="Comment.IsInternal" />
+                                Catatan internal
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="btn btn--primary">Kirim</button>
+                </div>
+            </form>
+        }
+
+        @if (Model.CanRate)
+        {
+            <form method="post" asp-page-handler="Rate" class="card">
+                <p class="text-sm" style="font-weight: 500; margin-bottom: calc(var(--space) * 2);">
+                    Bagaimana penanganan tiket ini?
+                </p>
+                <div class="flex" style="margin-bottom: calc(var(--space) * 3);" role="radiogroup" aria-label="Nilai kepuasan">
+                    @for (short i = 1; i <= 5; i++)
+                    {
+                        <label class="flex text-sm" style="cursor: pointer; gap: 4px;">
+                            <input type="radio" asp-for="Rating.Value" value="@i" /> @i
+                        </label>
+                    }
+                </div>
+                <div class="field" style="margin-bottom: calc(var(--space) * 3);">
+                    <label class="field__label" asp-for="Rating.Note">Catatan</label>
+                    <input class="field__input" asp-for="Rating.Note" maxlength="300"
+                           placeholder="Opsional" />
+                </div>
+                <button type="submit" class="btn btn--primary">Kirim Penilaian</button>
+            </form>
+        }
+        else if (t.SatisfactionRating is not null)
+        {
+            <div class="card flex">
+                @Icons.Render("star", 14)
+                <span class="text-sm">Dinilai @t.SatisfactionRating/5 oleh pelapor@(string.IsNullOrEmpty(t.SatisfactionNote) ? "" : $": \"{t.SatisfactionNote}\"")</span>
+            </div>
+        }
+    </div>
+
+    <aside class="card" aria-label="Info tiket">
+        <dl style="margin: 0; display: grid; gap: calc(var(--space) * 3); font-size: var(--text-sm);">
+            <div>
+                <dt class="text-xs text-3">Kategori</dt>
+                <dd style="margin: 0;">@t.CategoryName</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-3">Prioritas</dt>
+                <dd style="margin: 0;"><span class="@UiText.PriorityCss(t.Priority)">@UiText.PriorityLabel(t.Priority)</span></dd>
+            </div>
+            <div>
+                <dt class="text-xs text-3">Pelapor</dt>
+                <dd style="margin: 0;">@t.ReporterName <span class="text-3">· @t.ReporterDepartment</span></dd>
+            </div>
+            <div>
+                <dt class="text-xs text-3">Teknisi</dt>
+                <dd style="margin: 0;">@(t.AssigneeName ?? "Belum ditugaskan")</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-3">Dibuat</dt>
+                <dd style="margin: 0;" class="mono text-xs">@UiText.Timestamp(t.CreatedAt)</dd>
+            </div>
+            @if (t.FirstResponseAt is not null)
+            {
+                <div>
+                    <dt class="text-xs text-3">Respon pertama</dt>
+                    <dd style="margin: 0;" class="mono text-xs">@UiText.Timestamp(t.FirstResponseAt.Value)</dd>
+                </div>
+            }
+            @if (t.ResolvedAt is not null)
+            {
+                <div>
+                    <dt class="text-xs text-3">Selesai</dt>
+                    <dd style="margin: 0;" class="mono text-xs">@UiText.Timestamp(t.ResolvedAt.Value)</dd>
+                </div>
+            }
+            @if (t.ClosedAt is not null)
+            {
+                <div>
+                    <dt class="text-xs text-3">Ditutup</dt>
+                    <dd style="margin: 0;" class="mono text-xs">@UiText.Timestamp(t.ClosedAt.Value)</dd>
+                </div>
+            }
+            <div>
+                <dt class="text-xs text-3">Target SLA</dt>
+                <dd style="margin: 0;" class="text-xs text-2">
+                    Respon @t.SlaResponseMinutes mnt · Selesai @t.SlaResolutionMinutes mnt
+                </dd>
+            </div>
+        </dl>
+    </aside>
+</div>
