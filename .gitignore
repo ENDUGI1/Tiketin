@@ -32,5 +32,6 @@ Thumbs.db
 ## Node (none expected, safety)
 node_modules/
 
-## Claude Code local settings
+## Local tooling
 .claude/settings.local.json
+.agents/skills/
