@@ -98,6 +98,12 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ITicketNumberGenerator, TicketNumberGenerator>();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddSingleton<ISlaService, SlaService>();
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<INotificationService, EmailNotificationService>();
+builder.Services.AddScoped<IUserDirectory, UserDirectory>();
+builder.Services.AddHostedService<Tiketin.Web.BackgroundJobs.AutoCloseResolvedTicketsJob>();
 
 // --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();

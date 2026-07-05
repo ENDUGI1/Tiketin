@@ -1,4 +1,5 @@
 using Tiketin.Web.Contracts;
+using Tiketin.Web.Domain;
 using Tiketin.Web.Infrastructure;
 
 namespace Tiketin.Web.Services.Interfaces;
@@ -32,4 +33,17 @@ public interface ITicketService
 
     /// <summary>Audit trail, oldest first.</summary>
     Task<IReadOnlyList<TicketEventResponse>> GetEventsAsync(UserContext actor, Guid ticketId, CancellationToken ct = default);
+
+    /// <summary>Staff-only status change; the transition must be legal. Resolving notifies the reporter.</summary>
+    /// <exception cref="Domain.DomainRuleException">Illegal transition.</exception>
+    Task ChangeStatusAsync(UserContext actor, Guid ticketId, TicketStatus newStatus, CancellationToken ct = default);
+
+    /// <summary>Assigns a technician. Admins may assign anyone; technicians only themselves.</summary>
+    Task AssignAsync(UserContext actor, Guid ticketId, Guid? assigneeId, CancellationToken ct = default);
+
+    /// <summary>Staff-only priority change, recorded in the audit trail.</summary>
+    Task ChangePriorityAsync(UserContext actor, Guid ticketId, TicketPriority priority, CancellationToken ct = default);
+
+    /// <summary>Reporter reopens a resolved ticket, allowed up to 7 days after resolution.</summary>
+    Task ReopenAsync(UserContext actor, Guid ticketId, CancellationToken ct = default);
 }

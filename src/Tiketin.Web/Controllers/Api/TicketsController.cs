@@ -138,6 +138,78 @@ public class TicketsController(ITicketService ticketService) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Changes ticket status. Technician/Admin only; the transition must be legal.</summary>
+    /// <response code="204">Status changed.</response>
+    /// <response code="400">Illegal status transition.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">Caller is not staff.</response>
+    /// <response code="404">Ticket does not exist.</response>
+    [HttpPatch("{id:guid}/status")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeStatus(Guid id, ChangeStatusRequest request, CancellationToken ct)
+    {
+        await ticketService.ChangeStatusAsync(Actor, id, request.Status, ct);
+        return NoContent();
+    }
+
+    /// <summary>Assigns a technician. Admins assign anyone; technicians only themselves. Null unassigns.</summary>
+    /// <response code="204">Assignment updated.</response>
+    /// <response code="400">Assignee is not a technician, inactive, or the ticket is closed.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">Caller not allowed to assign this way.</response>
+    /// <response code="404">Ticket does not exist.</response>
+    [HttpPatch("{id:guid}/assign")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Assign(Guid id, AssignTicketRequest request, CancellationToken ct)
+    {
+        await ticketService.AssignAsync(Actor, id, request.AssigneeId, ct);
+        return NoContent();
+    }
+
+    /// <summary>Changes ticket priority. Technician/Admin only.</summary>
+    /// <response code="204">Priority changed.</response>
+    /// <response code="400">Validation failed.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">Caller is not staff.</response>
+    /// <response code="404">Ticket does not exist.</response>
+    [HttpPatch("{id:guid}/priority")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangePriority(Guid id, ChangePriorityRequest request, CancellationToken ct)
+    {
+        await ticketService.ChangePriorityAsync(Actor, id, request.Priority, ct);
+        return NoContent();
+    }
+
+    /// <summary>Reporter reopens a resolved ticket, allowed up to 7 days after resolution.</summary>
+    /// <response code="204">Ticket reopened.</response>
+    /// <response code="400">Ticket not resolved or the 7-day window has passed.</response>
+    /// <response code="401">Not authenticated.</response>
+    /// <response code="403">Caller is not the reporter.</response>
+    /// <response code="404">Ticket does not exist.</response>
+    [HttpPost("{id:guid}/reopen")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Reopen(Guid id, CancellationToken ct)
+    {
+        await ticketService.ReopenAsync(Actor, id, ct);
+        return NoContent();
+    }
+
     /// <summary>Returns the ticket audit trail (created, status changes, assignments, comments).</summary>
     /// <response code="200">Events, oldest first.</response>
     /// <response code="401">Not authenticated.</response>

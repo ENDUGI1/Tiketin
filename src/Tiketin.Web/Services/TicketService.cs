@@ -11,6 +11,7 @@ public class TicketService(
     AppDbContext db,
     ITicketNumberGenerator numberGenerator,
     IFileStorage fileStorage,
+    INotificationService notifications,
     TimeProvider clock) : ITicketService
 {
     public const long MaxAttachmentBytes = 5 * 1024 * 1024;
@@ -71,6 +72,12 @@ public class TicketService(
         {
             tickets = tickets.Where(t => t.Status == query.Status);
         }
+        else if (query.ActiveOnly)
+        {
+            tickets = tickets.Where(t => t.Status == TicketStatus.Open
+                                         || t.Status == TicketStatus.InProgress
+                                         || t.Status == TicketStatus.Reopened);
+        }
 
         if (query.Category is not null)
         {
@@ -98,8 +105,11 @@ public class TicketService(
 
         var total = await tickets.LongCountAsync(ct);
 
-        var items = await tickets
-            .OrderByDescending(t => t.CreatedAt)
+        var ordered = query.QueueOrder
+            ? tickets.OrderByDescending(t => t.Priority).ThenBy(t => t.CreatedAt)
+            : tickets.OrderByDescending(t => t.CreatedAt);
+
+        var items = await ordered
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(t => new TicketListItem(
@@ -363,6 +373,203 @@ public class TicketService(
                 e.NewValue,
                 e.CreatedAt))
             .ToListAsync(ct);
+    }
+
+    public async Task ChangeStatusAsync(
+        UserContext actor, Guid ticketId, TicketStatus newStatus, CancellationToken ct = default)
+    {
+        if (!actor.IsStaff)
+        {
+            throw new ForbiddenException("Hanya teknisi dan admin yang bisa mengubah status.");
+        }
+
+        var ticket = await db.Tickets
+            .Include(t => t.Reporter)
+            .SingleOrDefaultAsync(t => t.Id == ticketId, ct)
+            ?? throw new NotFoundException("Tiket tidak ditemukan.");
+
+        ApplyStatusChange(ticket, newStatus, actor.UserId);
+        await db.SaveChangesAsync(ct);
+
+        if (newStatus == TicketStatus.Resolved)
+        {
+            await notifications.TicketResolvedAsync(ticket, ticket.Reporter, ct);
+        }
+    }
+
+    public async Task AssignAsync(
+        UserContext actor, Guid ticketId, Guid? assigneeId, CancellationToken ct = default)
+    {
+        if (!actor.IsStaff)
+        {
+            throw new ForbiddenException("Hanya teknisi dan admin yang bisa menugaskan tiket.");
+        }
+
+        // Technicians may only pick up tickets for themselves; admins assign freely.
+        if (!actor.IsAdmin && assigneeId != actor.UserId)
+        {
+            throw new ForbiddenException("Teknisi hanya bisa menugaskan tiket ke diri sendiri.");
+        }
+
+        var ticket = await LoadTicketAsync(ticketId, ct);
+
+        if (ticket.Status is TicketStatus.Closed)
+        {
+            throw new DomainRuleException("Tiket yang sudah ditutup tidak bisa ditugaskan.");
+        }
+
+        AppUser? assignee = null;
+        if (assigneeId is not null)
+        {
+            assignee = await db.Users.SingleOrDefaultAsync(u => u.Id == assigneeId && u.IsActive, ct)
+                ?? throw new DomainRuleException("Pengguna tidak ditemukan atau tidak aktif.");
+
+            var assigneeRoles = await db.UserRoles
+                .Where(ur => ur.UserId == assignee.Id)
+                .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                .ToListAsync(ct);
+            if (!assigneeRoles.Contains("Technician") && !assigneeRoles.Contains("Admin"))
+            {
+                throw new DomainRuleException("Tiket hanya bisa ditugaskan ke teknisi.");
+            }
+        }
+
+        var now = clock.GetUtcNow();
+        var previous = ticket.AssigneeId;
+        ticket.AssigneeId = assigneeId;
+        ticket.UpdatedAt = now;
+
+        db.TicketEvents.Add(new TicketEvent
+        {
+            TicketId = ticket.Id,
+            ActorId = actor.UserId,
+            EventType = TicketEventType.Assigned,
+            OldValue = previous?.ToString(),
+            NewValue = assignee?.FullName ?? "unassigned",
+            CreatedAt = now
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        if (assignee is not null && assignee.Id != actor.UserId)
+        {
+            await notifications.TicketAssignedAsync(ticket, assignee, ct);
+        }
+    }
+
+    public async Task ChangePriorityAsync(
+        UserContext actor, Guid ticketId, TicketPriority priority, CancellationToken ct = default)
+    {
+        if (!actor.IsStaff)
+        {
+            throw new ForbiddenException("Hanya teknisi dan admin yang bisa mengubah prioritas.");
+        }
+
+        var ticket = await LoadTicketAsync(ticketId, ct);
+
+        if (ticket.Priority == priority)
+        {
+            return;
+        }
+
+        var now = clock.GetUtcNow();
+        var previous = ticket.Priority;
+        ticket.Priority = priority;
+        ticket.UpdatedAt = now;
+
+        db.TicketEvents.Add(new TicketEvent
+        {
+            TicketId = ticket.Id,
+            ActorId = actor.UserId,
+            EventType = TicketEventType.PriorityChanged,
+            OldValue = previous.ToString(),
+            NewValue = priority.ToString(),
+            CreatedAt = now
+        });
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task ReopenAsync(UserContext actor, Guid ticketId, CancellationToken ct = default)
+    {
+        var ticket = await LoadTicketAsync(ticketId, ct);
+
+        if (ticket.ReporterId != actor.UserId)
+        {
+            throw new ForbiddenException("Hanya pelapor yang bisa membuka ulang tiket.");
+        }
+
+        if (ticket.Status != TicketStatus.Resolved)
+        {
+            throw new DomainRuleException("Hanya tiket berstatus Selesai yang bisa dibuka ulang.");
+        }
+
+        var now = clock.GetUtcNow();
+        if (ticket.ResolvedAt is null || now - ticket.ResolvedAt > TimeSpan.FromDays(7))
+        {
+            throw new DomainRuleException("Tiket hanya bisa dibuka ulang dalam 7 hari setelah selesai.");
+        }
+
+        var previous = ticket.Status;
+        ticket.Status = TicketStatus.Reopened;
+        ticket.ResolvedAt = null; // resolution clock restarts; auto-close must not pick it up
+        ticket.UpdatedAt = now;
+
+        db.TicketEvents.Add(new TicketEvent
+        {
+            TicketId = ticket.Id,
+            ActorId = actor.UserId,
+            EventType = TicketEventType.Reopened,
+            OldValue = previous.ToString(),
+            NewValue = TicketStatus.Reopened.ToString(),
+            CreatedAt = now
+        });
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Applies a validated status change and its side effects. Does not save.</summary>
+    private void ApplyStatusChange(Ticket ticket, TicketStatus newStatus, Guid? actorId)
+    {
+        if (!TicketStatusTransitionValidator.IsAllowed(ticket.Status, newStatus))
+        {
+            throw new DomainRuleException(
+                $"Transisi status dari {ticket.Status} ke {newStatus} tidak diizinkan.");
+        }
+
+        var now = clock.GetUtcNow();
+        var previous = ticket.Status;
+        ticket.Status = newStatus;
+        ticket.UpdatedAt = now;
+
+        // First staff action on the ticket stops the SLA response clock.
+        if (actorId is not null && ticket.FirstResponseAt is null)
+        {
+            ticket.FirstResponseAt = now;
+        }
+
+        switch (newStatus)
+        {
+            case TicketStatus.Resolved:
+                ticket.ResolvedAt = now;
+                break;
+            case TicketStatus.Closed:
+                ticket.ClosedAt = now;
+                break;
+            case TicketStatus.Open or TicketStatus.Reopened:
+                ticket.ResolvedAt = null;
+                break;
+        }
+
+        db.TicketEvents.Add(new TicketEvent
+        {
+            TicketId = ticket.Id,
+            ActorId = actorId,
+            EventType = TicketEventType.StatusChanged,
+            OldValue = previous.ToString(),
+            NewValue = newStatus.ToString(),
+            CreatedAt = now
+        });
     }
 
     // ---------- helpers ----------

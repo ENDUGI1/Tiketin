@@ -156,7 +156,66 @@
         }
     </div>
 
-    <aside class="card" aria-label="Info tiket">
+    <aside class="stack-4" aria-label="Info tiket">
+    @if (Model.Actor.IsStaff)
+    {
+        <div class="card">
+            <p class="text-xs text-3" style="margin-bottom: calc(var(--space) * 3);">Tindakan</p>
+            <div class="stack-4" style="--space: 3px;">
+                @if (Model.AllowedStatuses.Count > 0)
+                {
+                    <form method="post" asp-page-handler="Status" class="flex">
+                        <select class="field__select" name="status" aria-label="Status baru" style="flex:1;">
+                            @foreach (var s in Model.AllowedStatuses)
+                            {
+                                <option value="@s">@UiText.StatusLabel(s)</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn--secondary btn--sm">Ubah</button>
+                    </form>
+                }
+                @if (Model.Actor.IsAdmin)
+                {
+                    <form method="post" asp-page-handler="Assign" class="flex">
+                        <select class="field__select" name="assigneeId" aria-label="Pilih teknisi" style="flex:1;">
+                            <option value="">Tidak ditugaskan</option>
+                            @foreach (var tech in Model.Technicians)
+                            {
+                                <option value="@tech.Id" selected="@(t.AssigneeId == tech.Id)">@tech.FullName</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn--secondary btn--sm">Tugaskan</button>
+                    </form>
+                }
+                else if (t.AssigneeId != Model.Actor.UserId && t.Status != TicketStatus.Closed)
+                {
+                    <form method="post" asp-page-handler="Assign">
+                        <input type="hidden" name="assigneeId" value="@Model.Actor.UserId" />
+                        <button type="submit" class="btn btn--secondary btn--sm" style="width:100%;">Tangani tiket ini</button>
+                    </form>
+                }
+                <form method="post" asp-page-handler="Priority" class="flex">
+                    <select class="field__select" name="priority" aria-label="Prioritas baru" style="flex:1;">
+                        @foreach (var p in new[] { TicketPriority.Low, TicketPriority.Medium, TicketPriority.High, TicketPriority.Critical })
+                        {
+                            <option value="@p" selected="@(t.Priority == p)">@UiText.PriorityLabel(p)</option>
+                        }
+                    </select>
+                    <button type="submit" class="btn btn--secondary btn--sm">Ubah</button>
+                </form>
+            </div>
+        </div>
+    }
+    @if (Model.CanReopen)
+    {
+        <form method="post" asp-page-handler="Reopen" class="card">
+            <p class="text-sm text-2" style="margin-bottom: calc(var(--space) * 2);">
+                Masalah belum teratasi? Tiket bisa dibuka ulang sampai 7 hari setelah selesai.
+            </p>
+            <button type="submit" class="btn btn--secondary" style="width:100%;">Buka Ulang Tiket</button>
+        </form>
+    }
+    <div class="card">
         <dl style="margin: 0; display: grid; gap: calc(var(--space) * 3); font-size: var(--text-sm);">
             <div>
                 <dt class="text-xs text-3">Kategori</dt>
@@ -206,5 +265,6 @@
                 </dd>
             </div>
         </dl>
+    </div>
     </aside>
 </div>

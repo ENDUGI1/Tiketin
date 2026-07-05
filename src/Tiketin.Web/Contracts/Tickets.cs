@@ -6,18 +6,18 @@ namespace Tiketin.Web.Contracts;
 // ---------- Requests ----------
 
 public record CreateTicketRequest(
-    [property: Required, MaxLength(150)] string Title,
-    [property: Required] string Description,
-    [property: Required, Range(1, int.MaxValue)] int CategoryId,
-    [property: Required, EnumDataType(typeof(TicketPriority))] TicketPriority Priority);
+    [Required, MaxLength(150)] string Title,
+    [Required] string Description,
+    [Required, Range(1, int.MaxValue)] int CategoryId,
+    [Required, EnumDataType(typeof(TicketPriority))] TicketPriority Priority);
 
 public record AddCommentRequest(
-    [property: Required] string Body,
+    [Required] string Body,
     bool IsInternal = false);
 
 public record RateTicketRequest(
-    [property: Required, Range(1, 5)] short Rating,
-    [property: MaxLength(300)] string? Note);
+    [Required, Range(1, 5)] short Rating,
+    [MaxLength(300)] string? Note);
 
 /// <summary>List filters; all optional. Bound from the query string.</summary>
 public class TicketListQuery
@@ -30,6 +30,12 @@ public class TicketListQuery
     /// <summary>Matches ticket number, title, or description (case-insensitive).</summary>
     public string? Search { get; init; }
 
+    /// <summary>When true and no explicit status filter, hides Resolved and Closed tickets.</summary>
+    public bool ActiveOnly { get; init; }
+
+    /// <summary>Queue ordering: priority first, then oldest. Default is newest first.</summary>
+    public bool QueueOrder { get; init; }
+
     [Range(1, int.MaxValue)]
     public int Page { get; init; } = 1;
 
@@ -37,7 +43,18 @@ public class TicketListQuery
     public int PageSize { get; init; } = 20;
 }
 
+public record ChangeStatusRequest(
+    [Required, EnumDataType(typeof(TicketStatus))] TicketStatus Status);
+
+/// <summary>Null assignee unassigns the ticket (admin only).</summary>
+public record AssignTicketRequest(Guid? AssigneeId);
+
+public record ChangePriorityRequest(
+    [Required, EnumDataType(typeof(TicketPriority))] TicketPriority Priority);
+
 // ---------- Responses ----------
+
+public record TechnicianResponse(Guid Id, string FullName);
 
 public record TicketListItem(
     Guid Id,

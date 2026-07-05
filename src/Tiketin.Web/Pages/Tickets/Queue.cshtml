@@ -2,13 +2,158 @@
 @model Tiketin.Web.Pages.Tickets.QueueModel
 @{
     ViewData["Title"] = "Antrian";
+    var statusOptions = new[]
+    {
+        TicketStatus.Open, TicketStatus.InProgress, TicketStatus.Reopened,
+        TicketStatus.Resolved, TicketStatus.Closed
+    };
+    var priorityOptions = new[]
+    {
+        TicketPriority.Critical, TicketPriority.High, TicketPriority.Medium, TicketPriority.Low
+    };
 }
 <div class="page-header">
     <div>
         <h1>Antrian</h1>
-        <p class="page-header__sub">Semua tiket masuk, urut prioritas dan SLA.</p>
+        <p class="page-header__sub">Tiket aktif, urut prioritas. Kolom SLA menghitung mundur ke tenggat respon atau penyelesaian.</p>
     </div>
 </div>
-<div class="empty">
-    <p>Belum ada tiket dalam antrian.</p>
-</div>
+
+@if (TempData["QueueError"] is string queueError)
+{
+    <div class="form-alert" role="alert">@queueError</div>
+}
+
+<form method="get" class="flex" style="margin-bottom: calc(var(--space) * 4); flex-wrap: wrap;">
+    <select class="field__select" style="width: auto;" name="status" aria-label="Filter status"
+            onchange="this.form.submit()">
+        <option value="">Aktif (default)</option>
+        @foreach (var s in statusOptions)
+        {
+            <option value="@s" selected="@(Model.Status == s)">@UiText.StatusLabel(s)</option>
+        }
+    </select>
+    <select class="field__select" style="width: auto;" name="category" aria-label="Filter kategori"
+            onchange="this.form.submit()">
+        <option value="">Semua kategori</option>
+        @foreach (var c in Model.Categories)
+        {
+            <option value="@c.Id" selected="@(Model.Category == c.Id)">@c.Name</option>
+        }
+    </select>
+    <select class="field__select" style="width: auto;" name="priority" aria-label="Filter prioritas"
+            onchange="this.form.submit()">
+        <option value="">Semua prioritas</option>
+        @foreach (var p in priorityOptions)
+        {
+            <option value="@p" selected="@(Model.Priority == p)">@UiText.PriorityLabel(p)</option>
+        }
+    </select>
+    <select class="field__select" style="width: auto;" name="assigned" aria-label="Filter penugasan"
+            onchange="this.form.submit()">
+        <option value="">Semua teknisi</option>
+        <option value="me" selected="@(Model.Assigned == "me")">Tugas saya</option>
+        <option value="none" selected="@(Model.Assigned == "none")">Belum ditugaskan</option>
+    </select>
+</form>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="empty">
+        <p>Tidak ada tiket yang cocok dengan filter ini.</p>
+        <a class="btn btn--secondary" href="/queue">Reset filter</a>
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nomor</th>
+                    <th style="width: 30%;">Judul</th>
+                    <th>Kategori</th>
+                    <th>Prioritas</th>
+                    <th>Status</th>
+                    <th>Teknisi</th>
+                    <th>SLA</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    var t = row.Ticket;
+                    // Response clock runs until first response; then the resolution clock.
+                    var pendingClock = t.FirstResponseAt is null ? row.Sla.Response
+                        : t.ResolvedAt is null ? row.Sla.Resolution
+                        : null;
+                    <tr>
+                        <td><a class="mono text-sm" href="/tickets/@t.Id">@t.TicketNumber</a></td>
+                        <td style="white-space: normal;">
+                            <a href="/tickets/@t.Id">@t.Title</a>
+                            <span class="text-3 text-xs" style="display: block;">@t.ReporterName</span>
+                        </td>
+                        <td class="text-2">@t.CategoryName</td>
+                        <td><span class="@UiText.PriorityCss(t.Priority)">@UiText.PriorityLabel(t.Priority)</span></td>
+                        <td>
+                            <span class="status @UiText.StatusCss(t.Status)">
+                                <span class="status__dot"></span>@UiText.StatusLabel(t.Status)
+                            </span>
+                        </td>
+                        <td class="text-2">@(t.AssigneeName ?? "-")</td>
+                        <td>
+                            @if (pendingClock is not null)
+                            {
+                                <span class="sla" data-sla-deadline="@pendingClock.Deadline.ToUnixTimeMilliseconds()"
+                                      data-sla-phase="@(t.FirstResponseAt is null ? "respon" : "selesai")">
+                                    @(pendingClock.IsBreached ? "terlampaui" : "...")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="sla @(row.Sla.Resolution.IsBreached || row.Sla.Response.IsBreached ? "sla--breach" : "")"
+                                      style="animation: none;">
+                                    @(row.Sla.Resolution.IsBreached || row.Sla.Response.IsBreached ? "SLA terlampaui" : "SLA terpenuhi")
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            @if (t.AssigneeName is null && t.Status != TicketStatus.Closed)
+                            {
+                                <form method="post" asp-page-handler="Claim" asp-route-id="@t.Id" style="display:inline;">
+                                    <button type="submit" class="btn btn--secondary btn--sm">Tangani</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Meta.TotalPages > 1)
+    {
+        <div class="flex" style="margin-top: calc(var(--space) * 4); justify-content: flex-end;">
+            <span class="text-3 text-xs mono">Hal @Model.Meta.Page / @Model.Meta.TotalPages</span>
+            @if (Model.Meta.Page > 1)
+            {
+                <a class="btn btn--secondary btn--sm"
+                   href="/queue?p=@(Model.Meta.Page - 1)&status=@Model.Status&category=@Model.Category&priority=@Model.Priority&assigned=@Model.Assigned">
+                    @Icons.Render("chevron-left", 14) Sebelumnya
+                </a>
+            }
+            @if (Model.Meta.Page < Model.Meta.TotalPages)
+            {
+                <a class="btn btn--secondary btn--sm"
+                   href="/queue?p=@(Model.Meta.Page + 1)&status=@Model.Status&category=@Model.Category&priority=@Model.Priority&assigned=@Model.Assigned">
+                    Berikutnya @Icons.Render("chevron-right", 14)
+                </a>
+            }
+        </div>
+    }
+}
+
+@section Scripts {
+    <script src="~/js/sla-countdown.js" asp-append-version="true"></script>
+}
