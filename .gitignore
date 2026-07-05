@@ -1,0 +1,36 @@
+## .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+## Build artifacts
+artifacts/
+TestResults/
+coverage/
+*.trx
+
+## Local secrets & env
+appsettings.*.local.json
+.env
+*.pfx
+
+## Uploaded files (local dev storage)
+storage/
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Node (none expected, safety)
+node_modules/
+
+## Claude Code local settings
+.claude/settings.local.json
