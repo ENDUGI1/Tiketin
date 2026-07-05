@@ -1,0 +1,53 @@
+@page "/admin/users/{id:guid}"
+@model Tiketin.Web.Pages.Admin.UserEditModel
+@{
+    ViewData["Title"] = "Ubah Pengguna";
+    var roles = new[] { "Employee", "Technician", "Admin" };
+}
+<div class="page-header">
+    <div>
+        <h1>Ubah Pengguna</h1>
+        <p class="page-header__sub">@Model.Target.Email</p>
+    </div>
+    <a class="btn btn--ghost" href="/admin/users">@Icons.Render("chevron-left", 14) Kembali</a>
+</div>
+
+<div style="max-width: 480px;">
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="form-alert" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <form method="post">
+        <div class="field">
+            <label class="field__label" asp-for="Input.FullName">Nama lengkap <span class="req">*</span></label>
+            <input class="field__input" asp-for="Input.FullName" />
+            <span class="field__error" asp-validation-for="Input.FullName"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Input.Department">Departemen <span class="req">*</span></label>
+            <input class="field__input" asp-for="Input.Department" />
+            <span class="field__error" asp-validation-for="Input.Department"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Input.Role">Role <span class="req">*</span></label>
+            <select class="field__select" asp-for="Input.Role">
+                @foreach (var r in roles)
+                {
+                    <option value="@r">@r</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="flex text-sm" style="cursor: pointer;">
+                <input type="checkbox" asp-for="Input.IsActive" />
+                Akun aktif
+            </label>
+            <span class="field__help">Akun nonaktif tidak bisa masuk, tetapi riwayat tiketnya tetap tersimpan.</span>
+        </div>
+        <div class="flex" style="margin-top: calc(var(--space) * 5);">
+            <button type="submit" class="btn btn--primary">Simpan</button>
+            <a class="btn btn--ghost" href="/admin/users">Batal</a>
+        </div>
+    </form>
+</div>

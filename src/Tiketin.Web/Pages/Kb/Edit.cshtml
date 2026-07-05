@@ -1,0 +1,53 @@
+@page "/kb/edit/{id:guid?}"
+@model Tiketin.Web.Pages.Kb.EditModel
+@{
+    ViewData["Title"] = Model.ArticleId is null ? "Tulis Artikel" : "Ubah Artikel";
+}
+<div class="page-header">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        <p class="page-header__sub">Artikel baru tersimpan sebagai draf sampai dipublikasikan.</p>
+    </div>
+</div>
+
+<div style="max-width: 760px;">
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div class="form-alert" role="alert">
+            @ViewData.ModelState[string.Empty]!.Errors[0].ErrorMessage
+        </div>
+    }
+
+    <form method="post">
+        <div class="field">
+            <label class="field__label" asp-for="Input.Title">Judul <span class="req">*</span></label>
+            <input class="field__input" asp-for="Input.Title" maxlength="150" autofocus autocomplete="off" />
+            <span class="field__error" asp-validation-for="Input.Title"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" asp-for="Input.CategoryId">Kategori <span class="req">*</span></label>
+            <select class="field__select" asp-for="Input.CategoryId" style="max-width: 280px;">
+                <option value="">Pilih kategori</option>
+                @foreach (var c in Model.Categories)
+                {
+                    <option value="@c.Id">@c.Name</option>
+                }
+            </select>
+            <span class="field__error" asp-validation-for="Input.CategoryId"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" asp-for="Input.BodyMarkdown">Isi artikel <span class="req">*</span></label>
+            <textarea class="field__textarea mono" asp-for="Input.BodyMarkdown" rows="18"
+                      placeholder="Tulis dalam format Markdown. Gunakan ## untuk sub judul dan 1. untuk langkah."></textarea>
+            <span class="field__help">Format Markdown. HTML mentah tidak dirender.</span>
+            <span class="field__error" asp-validation-for="Input.BodyMarkdown"></span>
+        </div>
+
+        <div class="flex" style="margin-top: calc(var(--space) * 5);">
+            <button type="submit" class="btn btn--primary">Simpan</button>
+            <a class="btn btn--ghost" href="/kb">Batal</a>
+        </div>
+    </form>
+</div>

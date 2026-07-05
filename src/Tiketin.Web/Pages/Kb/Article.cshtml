@@ -1,0 +1,40 @@
+@page "/kb/{slug}"
+@model Tiketin.Web.Pages.Kb.ArticleModel
+@{
+    var a = Model.Article;
+    ViewData["Title"] = a.Title;
+}
+<div class="page-header" style="align-items: flex-start;">
+    <div>
+        <div class="flex text-xs text-3" style="margin-bottom: calc(var(--space) * 1);">
+            <a class="text-3" href="/kb">Knowledge Base</a>
+            <span>/</span>
+            <span>@a.CategoryName</span>
+            @if (!a.IsPublished)
+            {
+                <span class="status status--closed"><span class="status__dot"></span>Draf</span>
+            }
+        </div>
+        <h1 style="max-width: 56ch;">@a.Title</h1>
+        <p class="page-header__sub">
+            Oleh @a.AuthorName · <span class="mono">@UiText.Timestamp(a.UpdatedAt ?? a.CreatedAt)</span>
+            · @a.ViewCount kali dilihat
+        </p>
+    </div>
+    @if (Model.Actor.IsStaff)
+    {
+        <div class="flex">
+            <a class="btn btn--secondary" href="/kb/edit/@a.Id">Ubah</a>
+            <form method="post" asp-page-handler="Publish" asp-route-slug="@a.Slug">
+                <input type="hidden" name="publish" value="@(!a.IsPublished)" />
+                <button type="submit" class="btn @(a.IsPublished ? "btn--ghost" : "btn--primary")">
+                    @(a.IsPublished ? "Tarik dari Publikasi" : "Publikasikan")
+                </button>
+            </form>
+        </div>
+    }
+</div>
+
+<article class="card kb-article" style="max-width: 760px;">
+    @MarkdownRenderer.Render(a.BodyMarkdown)
+</article>

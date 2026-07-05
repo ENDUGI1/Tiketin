@@ -310,6 +310,40 @@ a:hover { text-decoration: underline; }
   50% { opacity: 0.55; }
 }
 
+/* ---------- KB article body (rendered markdown) ---------- */
+
+.kb-article { padding: calc(var(--space) * 6) calc(var(--space) * 7); line-height: 1.65; }
+.kb-article h1, .kb-article h2 { font-size: var(--text-lg); margin: calc(var(--space) * 5) 0 calc(var(--space) * 2); }
+.kb-article h3, .kb-article h4 { font-size: var(--text-base); margin: calc(var(--space) * 4) 0 calc(var(--space) * 2); }
+.kb-article p { margin: 0 0 calc(var(--space) * 3); }
+.kb-article ul, .kb-article ol { margin: 0 0 calc(var(--space) * 3); padding-left: 1.4em; }
+.kb-article li { margin-bottom: calc(var(--space) * 1); }
+.kb-article code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.kb-article pre {
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 3);
+  overflow-x: auto;
+}
+.kb-article pre code { background: none; border: none; padding: 0; }
+.kb-article a { color: var(--accent); }
+.kb-article blockquote {
+  margin: 0 0 calc(var(--space) * 3);
+  padding-left: calc(var(--space) * 3);
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-2);
+}
+.kb-article table { border-collapse: collapse; margin-bottom: calc(var(--space) * 3); }
+.kb-article th, .kb-article td { border: 1px solid var(--border); padding: calc(var(--space) * 1.5) calc(var(--space) * 2.5); font-size: var(--text-sm); }
+
 /* ---------- Utility ---------- */
 
 .stack-4 > * + * { margin-top: calc(var(--space) * 4); }

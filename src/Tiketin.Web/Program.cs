@@ -103,6 +103,9 @@ builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOpt
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<INotificationService, EmailNotificationService>();
 builder.Services.AddScoped<IUserDirectory, UserDirectory>();
+builder.Services.AddScoped<IKbService, KbService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddHostedService<Tiketin.Web.BackgroundJobs.AutoCloseResolvedTicketsJob>();
 
 // --- Swagger ---

@@ -6,9 +6,82 @@
 <div class="page-header">
     <div>
         <h1>Knowledge Base</h1>
-        <p class="page-header__sub">Panduan dan solusi masalah IT umum.</p>
+        <p class="page-header__sub">Panduan dan solusi masalah IT umum. Cari dulu sebelum membuat tiket.</p>
     </div>
+    @if (Model.Actor.IsStaff)
+    {
+        <a class="btn btn--primary" href="/kb/edit">@Icons.Render("plus") Tulis Artikel</a>
+    }
 </div>
-<div class="empty">
-    <p>Belum ada artikel.</p>
-</div>
+
+<form method="get" class="flex" style="margin-bottom: calc(var(--space) * 4); flex-wrap: wrap;">
+    <input class="field__input" style="width: 300px;" type="search" name="search"
+           value="@Model.Search" placeholder="Cari artikel, contoh: printer offline"
+           aria-label="Cari artikel" />
+    <select class="field__select" style="width: auto;" name="category" aria-label="Filter kategori"
+            onchange="this.form.submit()">
+        <option value="">Semua kategori</option>
+        @foreach (var c in Model.Categories)
+        {
+            <option value="@c.Id" selected="@(Model.Category == c.Id)">@c.Name</option>
+        }
+    </select>
+    <button type="submit" class="btn btn--secondary">@Icons.Render("search", 14) Cari</button>
+</form>
+
+@if (Model.Articles.Data.Count == 0)
+{
+    <div class="empty">
+        @if (!string.IsNullOrEmpty(Model.Search))
+        {
+            <p>Tidak ada artikel untuk pencarian "@Model.Search".</p>
+            <a class="btn btn--secondary" href="/kb">Lihat semua artikel</a>
+        }
+        else
+        {
+            <p>Belum ada artikel yang dipublikasikan.</p>
+            @if (Model.Actor.IsStaff)
+            {
+                <a class="btn btn--primary" href="/kb/edit">@Icons.Render("plus") Tulis Artikel</a>
+            }
+        }
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Judul</th>
+                    <th>Kategori</th>
+                    <th>Dilihat</th>
+                    <th>Diperbarui</th>
+                    @if (Model.Actor.IsStaff)
+                    {
+                        <th>Status</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.Articles.Data)
+                {
+                    <tr>
+                        <td style="white-space: normal;"><a href="/kb/@a.Slug">@a.Title</a></td>
+                        <td class="text-2">@a.CategoryName</td>
+                        <td class="mono text-3 text-xs">@a.ViewCount</td>
+                        <td class="mono text-3 text-xs">@UiText.Timestamp(a.UpdatedAt ?? a.CreatedAt)</td>
+                        @if (Model.Actor.IsStaff)
+                        {
+                            <td>
+                                <span class="status @(a.IsPublished ? "status--resolved" : "status--closed")">
+                                    <span class="status__dot"></span>@(a.IsPublished ? "Terbit" : "Draf")
+                                </span>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -2,13 +2,117 @@
 @model Tiketin.Web.Pages.Admin.UsersModel
 @{
     ViewData["Title"] = "Pengguna";
+    var roles = new[] { "Employee", "Technician", "Admin" };
 }
 <div class="page-header">
     <div>
         <h1>Pengguna</h1>
-        <p class="page-header__sub">Kelola akun dan role pengguna.</p>
+        <p class="page-header__sub">Kelola akun, role, dan status aktif pengguna.</p>
     </div>
 </div>
-<div class="empty">
-    <p>Manajemen pengguna tersedia setelah milestone berikutnya.</p>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-alert" role="alert">@Model.ErrorMessage</div>
+}
+@if (Model.SuccessMessage is not null)
+{
+    <div class="card text-sm" style="border-color: var(--status-resolved); margin-bottom: calc(var(--space) * 4);">
+        @Model.SuccessMessage
+    </div>
+}
+
+<details class="card" style="margin-bottom: calc(var(--space) * 4);" open="@Model.ShowCreateForm">
+    <summary class="text-sm" style="font-weight: 500; cursor: pointer;">Tambah pengguna baru</summary>
+    <form method="post" asp-page-handler="Create"
+          style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 calc(var(--space) * 4); margin-top: calc(var(--space) * 4); max-width: 640px;">
+        <div class="field">
+            <label class="field__label" asp-for="Create.FullName">Nama lengkap <span class="req">*</span></label>
+            <input class="field__input" asp-for="Create.FullName" autocomplete="off" />
+            <span class="field__error" asp-validation-for="Create.FullName"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Create.Email">Email <span class="req">*</span></label>
+            <input class="field__input" asp-for="Create.Email" type="email" autocomplete="off" />
+            <span class="field__error" asp-validation-for="Create.Email"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Create.Department">Departemen <span class="req">*</span></label>
+            <input class="field__input" asp-for="Create.Department" autocomplete="off" />
+            <span class="field__error" asp-validation-for="Create.Department"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Create.Role">Role <span class="req">*</span></label>
+            <select class="field__select" asp-for="Create.Role">
+                @foreach (var r in roles)
+                {
+                    <option value="@r">@r</option>
+                }
+            </select>
+            <span class="field__error" asp-validation-for="Create.Role"></span>
+        </div>
+        <div class="field">
+            <label class="field__label" asp-for="Create.Password">Kata sandi awal <span class="req">*</span></label>
+            <input class="field__input" asp-for="Create.Password" type="password" autocomplete="new-password" />
+            <span class="field__help">Minimal 8 karakter dengan huruf besar dan angka.</span>
+            <span class="field__error" asp-validation-for="Create.Password"></span>
+        </div>
+        <div class="field" style="align-self: end;">
+            <button type="submit" class="btn btn--primary">Buat Pengguna</button>
+        </div>
+    </form>
+</details>
+
+<form method="get" class="flex" style="margin-bottom: calc(var(--space) * 4);">
+    <input class="field__input" style="width: 280px;" type="search" name="search"
+           value="@Model.Search" placeholder="Cari nama, email, atau departemen"
+           aria-label="Cari pengguna" />
+    <button type="submit" class="btn btn--secondary">Cari</button>
+</form>
+
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Email</th>
+                <th>Departemen</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Model.Users.Data)
+            {
+                <tr>
+                    <td>@u.FullName</td>
+                    <td class="text-2">@u.Email</td>
+                    <td class="text-2">@u.Department</td>
+                    <td>@u.Role</td>
+                    <td>
+                        <span class="status @(u.IsActive ? "status--resolved" : "status--closed")">
+                            <span class="status__dot"></span>@(u.IsActive ? "Aktif" : "Nonaktif")
+                        </span>
+                    </td>
+                    <td><a class="btn btn--ghost btn--sm" href="/admin/users/@u.Id">Ubah</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
+
+@if (Model.Users.Meta.TotalPages > 1)
+{
+    <div class="flex" style="margin-top: calc(var(--space) * 4); justify-content: flex-end;">
+        <span class="text-3 text-xs mono">Hal @Model.Users.Meta.Page / @Model.Users.Meta.TotalPages</span>
+        @if (Model.Users.Meta.Page > 1)
+        {
+            <a class="btn btn--secondary btn--sm" href="/admin/users?p=@(Model.Users.Meta.Page - 1)&search=@Model.Search">Sebelumnya</a>
+        }
+        @if (Model.Users.Meta.Page < Model.Users.Meta.TotalPages)
+        {
+            <a class="btn btn--secondary btn--sm" href="/admin/users?p=@(Model.Users.Meta.Page + 1)&search=@Model.Search">Berikutnya</a>
+        }
+    </div>
+}
