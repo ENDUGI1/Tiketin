@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Data ---
 builder.Services.AddDbContext<AppDbContext>(options => options
-    .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+    .UseNpgsql(ConnectionStringNormalizer.Normalize(builder.Configuration.GetConnectionString("Default")))
     .UseSnakeCaseNamingConvention());
 
 // --- Identity ---
