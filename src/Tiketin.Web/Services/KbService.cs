@@ -170,7 +170,7 @@ public partial class KbService(AppDbContext db, TimeProvider clock) : IKbService
         return slug;
     }
 
-    internal static string Slugify(string title)
+    public static string Slugify(string title)
     {
         var lowered = title.Trim().ToLowerInvariant();
         var cleaned = NonSlugChars().Replace(lowered, "-");

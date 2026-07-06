@@ -1,0 +1,51 @@
+# Production-ish composition: app + Postgres. Set the secrets in a .env file
+# next to this compose file (never commit it):
+#   POSTGRES_PASSWORD=...
+#   JWT_SIGNING_KEY=...        (>= 32 chars)
+#   ADMIN_EMAIL=...            (bootstrap admin, created on first start)
+#   ADMIN_PASSWORD=...
+#   APP_BASE_URL=https://helpdesk.example.com
+#
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=tiketin;Username=tiketin;Password=${POSTGRES_PASSWORD}"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      Bootstrap__AdminEmail: ${ADMIN_EMAIL}
+      Bootstrap__AdminPassword: ${ADMIN_PASSWORD}
+      App__BaseUrl: ${APP_BASE_URL}
+      Smtp__Host: ${SMTP_HOST:-localhost}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__UseStartTls: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - tiketin-storage:/app/storage
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tiketin
+      POSTGRES_USER: tiketin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - tiketin-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tiketin -d tiketin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  tiketin-pgdata:
+  tiketin-storage:

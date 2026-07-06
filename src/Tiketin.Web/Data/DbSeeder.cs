@@ -32,10 +32,62 @@ public static class DbSeeder
 
         await SeedCategoriesAsync(db);
 
+        var configuration = services.GetRequiredService<IConfiguration>();
+
         if (isDevelopment)
         {
             await SeedUsersAsync(userManager);
+
+            // Integration tests set SkipDemoSeed: they need users, not demo content.
+            if (!configuration.GetValue<bool>("SkipDemoSeed"))
+            {
+                await DemoDataSeeder.SeedAsync(db);
+            }
         }
+        else
+        {
+            await BootstrapAdminAsync(userManager, configuration);
+        }
+    }
+
+    /// <summary>
+    /// Production first-run: creates the initial admin from Bootstrap:AdminEmail /
+    /// Bootstrap:AdminPassword when no user holds the Admin role yet.
+    /// </summary>
+    private static async Task BootstrapAdminAsync(UserManager<AppUser> userManager, IConfiguration configuration)
+    {
+        if ((await userManager.GetUsersInRoleAsync("Admin")).Count > 0)
+        {
+            return;
+        }
+
+        var email = configuration["Bootstrap:AdminEmail"];
+        var password = configuration["Bootstrap:AdminPassword"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            return;
+        }
+
+        var admin = new AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            FullName = "Administrator",
+            Department = "IT",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var result = await userManager.CreateAsync(admin, password);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Failed creating bootstrap admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+
+        await userManager.AddToRoleAsync(admin, "Admin");
     }
 
     private static async Task SeedCategoriesAsync(AppDbContext db)

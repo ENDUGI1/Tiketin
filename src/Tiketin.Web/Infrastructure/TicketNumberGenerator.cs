@@ -18,6 +18,9 @@ public class TicketNumberGenerator(AppDbContext db) : ITicketNumberGenerator
         var yearMonth = now.UtcDateTime.ToString("yyyyMM");
         var sequenceName = $"ticket_seq_{yearMonth}";
 
+        // EF1002: identifiers cannot be parameterized; sequenceName is derived from
+        // a date format string, never from user input.
+#pragma warning disable EF1002
         try
         {
             // First ticket of a new month creates the sequence. IF NOT EXISTS still
@@ -34,6 +37,7 @@ public class TicketNumberGenerator(AppDbContext db) : ITicketNumberGenerator
         var next = await db.Database
             .SqlQueryRaw<long>($"SELECT nextval('{sequenceName}') AS \"Value\"")
             .SingleAsync(ct);
+#pragma warning restore EF1002
 
         return Format(yearMonth, next);
     }
