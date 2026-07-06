@@ -7,6 +7,12 @@ and a versioned REST API backed by the same service layer.
 
 [![CI](https://github.com/ENDUGI1/Tiketin/actions/workflows/ci.yml/badge.svg)](https://github.com/ENDUGI1/Tiketin/actions)
 
+**Live demo:** https://tiketin.onrender.com — log in as `admin@tiketin.local` /
+`Tiketin123!` (admin), `bagus.prasetyo@tiketin.local` (technician), or
+`andini.puspitasari@tiketin.local` (employee); Swagger UI at
+[/swagger](https://tiketin.onrender.com/swagger). Hosted on Render's free tier, so
+the first visit after an idle period takes ~30-60 seconds to wake up.
+
 | | |
 | --- | --- |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Queue](docs/screenshots/queue.png) |
