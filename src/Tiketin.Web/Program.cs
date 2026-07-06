@@ -64,16 +64,22 @@ builder.Services
                 ? JwtBearerDefaults.AuthenticationScheme
                 : IdentityConstants.ApplicationScheme;
     })
-    .AddJwtBearer(options =>
+    .AddJwtBearer();
+
+// Validation parameters bind lazily from IOptions<JwtOptions> so signing and
+// validation always read the same (final) configuration — including sources a
+// test host adds after Program.cs has started executing.
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<Microsoft.Extensions.Options.IOptions<JwtOptions>>((options, jwt) =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = jwtOptions.Issuer,
+            ValidIssuer = jwt.Value.Issuer,
             ValidateAudience = true,
-            ValidAudience = jwtOptions.Audience,
+            ValidAudience = jwt.Value.Audience,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Value.SigningKey)),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
