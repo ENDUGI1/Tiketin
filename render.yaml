@@ -1,0 +1,23 @@
+# Render Blueprint — free-tier portfolio deployment.
+# Dashboard > New > Blueprint > select this repo. Render builds the Dockerfile,
+# generates the JWT key, and prompts once for the database connection string
+# (use a free Neon PostgreSQL project, ".NET" connection string format).
+services:
+  - type: web
+    name: tiketin
+    runtime: docker
+    plan: free
+    healthCheckPath: /auth/login
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # Portfolio demo: seed 40 tickets + KB articles, expose Swagger UI.
+      - key: SeedDemo
+        value: "true"
+      - key: EnableSwagger
+        value: "true"
+      - key: Jwt__SigningKey
+        generateValue: true
+      # Neon: Host=...;Database=...;Username=...;Password=...;SSL Mode=Require
+      - key: ConnectionStrings__Default
+        sync: false

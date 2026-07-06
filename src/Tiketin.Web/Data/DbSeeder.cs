@@ -34,7 +34,8 @@ public static class DbSeeder
 
         var configuration = services.GetRequiredService<IConfiguration>();
 
-        if (isDevelopment)
+        // SeedDemo opts a production host into the demo dataset (portfolio deploys).
+        if (isDevelopment || configuration.GetValue<bool>("SeedDemo"))
         {
             await SeedUsersAsync(userManager);
 
