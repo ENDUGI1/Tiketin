@@ -5,9 +5,7 @@ priority queue with live SLA countdowns, and admins get operational reports. Bui
 single ASP.NET Core 8 application that serves both a Razor Pages UI (Bahasa Indonesia)
 and a versioned REST API backed by the same service layer.
 
-<!-- After pushing to GitHub, replace USER below to activate the CI badge:
-[![CI](https://github.com/USER/tiketin/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/tiketin/actions)
--->
+[![CI](https://github.com/ENDUGI1/Tiketin/actions/workflows/ci.yml/badge.svg)](https://github.com/ENDUGI1/Tiketin/actions)
 
 | | |
 | --- | --- |
